@@ -1,17 +1,5 @@
 services:
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    ports:
-      - "${APP_PORT:-3636}:${APP_PORT:-3636}"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  postgres:
+  nestjs-demo-postgres:
     image: postgres:17-alpine
     env_file:
       - .env
@@ -28,6 +16,18 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  nestjs-demo-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${APP_PORT:-3636}:${APP_PORT:-3636}"
+    depends_on:
+      nestjs-demo-postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
