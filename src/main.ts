@@ -10,4 +10,4 @@ async function bootstrap() {
   setupSwagger(app);
   await app.listen(process.env.APP_PORT ?? 3036);
 }
-bootstrap();
+void bootstrap();

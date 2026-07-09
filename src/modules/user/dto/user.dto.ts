@@ -1,41 +1,53 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsEmail, IsNotEmpty, IsNumber, isNumber, IsString, MinLength } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
 
 export class UserProfileResponseDto {
-    @ApiProperty()
-    id: number;
+  @ApiProperty()
+  id: number;
 
-    @ApiProperty()
-    @IsEmail()
-    avatar: string;
+  @ApiProperty()
+  email: string;
 
-    @ApiProperty()
-    email: string;
+  @ApiProperty()
+  username: string;
+
+  @ApiProperty({ required: false, nullable: true })
+  avatar: string | null;
+
+  @ApiProperty()
+  bio: string;
 }
 
-export class UpdateUserProfileResponseDto {
-    @ApiProperty()
-    @IsNumber()
-    id: number;
+export class UpdateUserProfileRequestDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  username?: string;
 
-    @ApiProperty()
-    @IsString()
-    @IsNotEmpty()
-    currentPassword: string
+  @ApiProperty({ required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  avatar?: string | null;
 
-    @ApiProperty()
-    @IsString()
-    @IsNotEmpty()
-    @MinLength(8)
-    newPassword: string
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  bio?: string;
 
-    @ApiProperty()
-    @IsString()
-    @IsNotEmpty()
-    @MinLength(8)
-    confirmPassword: string
+  @ApiProperty({ required: false })
+  @ValidateIf((body: UpdateUserProfileRequestDto) => Boolean(body.newPassword))
+  @IsString()
+  currentPassword?: string;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  newPassword?: string;
 
-    @ApiProperty()
-    bio: string
+  @ApiProperty({ required: false })
+  @ValidateIf((body: UpdateUserProfileRequestDto) => Boolean(body.newPassword))
+  @IsString()
+  @MinLength(8)
+  confirmPassword?: string;
 }
