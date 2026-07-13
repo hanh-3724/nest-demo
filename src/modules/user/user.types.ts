@@ -6,3 +6,8 @@ export type JwtUserPayload = {
 export type AuthenticatedRequest = Request & {
   user: JwtUserPayload;
 };
+
+export type OptionalAuthenticatedRequest = Request & {
+  user?: JwtUserPayload;
+};
+import type { Request } from 'express';

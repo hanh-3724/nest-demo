@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DbModule } from './db/db.module';
 import { UserModule } from './modules/user/user.module';
+import { ArticleModule } from './modules/article/article.module';
 import { join } from 'node:path';
 import {
   AcceptLanguageResolver,
@@ -9,6 +10,7 @@ import {
   I18nModule,
   QueryResolver,
 } from 'nestjs-i18n';
+import { FlatEnglishJsonLoader } from './common/i18n/flat-english-json.loader';
 
 @Module({
   imports: [
@@ -18,6 +20,7 @@ import {
     }),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
+      loader: FlatEnglishJsonLoader,
       loaderOptions: {
         path: join(__dirname, 'i18n'),
         watch: true,
@@ -30,6 +33,7 @@ import {
     }),
     DbModule,
     UserModule,
+    ArticleModule,
   ],
 })
 export class AppModule {}
