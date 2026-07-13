@@ -5,49 +5,39 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  ValidationError,
 } from '@nestjs/common';
+import { getMetadataStorage } from 'class-validator';
 import type { Request, Response } from 'express';
-import {
-  I18nValidationException,
-  I18nValidationExceptionFilter,
-} from 'nestjs-i18n';
+import { I18nContext, I18nValidationException } from 'nestjs-i18n';
 
 type HttpExceptionResponse = {
   error?: string;
   message?: string | string[];
 };
 
-@Catch()
-export class ApiExceptionFilter
-  extends I18nValidationExceptionFilter
-  implements ExceptionFilter
-{
-  private readonly logger = new Logger(ApiExceptionFilter.name);
+const VALIDATION_MESSAGE_KEYS: Record<string, string> = {
+  isBoolean: 'validation.IS_BOOLEAN',
+  isDate: 'validation.IS_DATE',
+  isDateString: 'validation.IS_DATE',
+  isEmail: 'validation.IS_EMAIL',
+  isInt: 'validation.IS_INT',
+  isNotEmpty: 'validation.IS_NOT_EMPTY',
+  isString: 'validation.IS_STRING',
+  maxLength: 'validation.MAX_LENGTH',
+  min: 'validation.MIN',
+  minLength: 'validation.MIN_LENGTH',
+};
 
-  constructor() {
-    super({
-      detailedErrors: false,
-      errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-      responseBodyFormatter: (host, _exception, errors) => {
-        const request = host.switchToHttp().getRequest<Request>();
-        return {
-          statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-          message: errors,
-          error: 'Unprocessable Entity',
-          timestamp: new Date().toISOString(),
-          path: request.url,
-        };
-      },
-    });
-  }
+@Catch()
+export class ApiExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(ApiExceptionFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): unknown {
     if (exception instanceof I18nValidationException) {
-      return super.catch(exception, host);
+      return this.handleValidationException(exception, host);
     }
 
-    const request = host.switchToHttp().getRequest<Request>();
-    const response = host.switchToHttp().getResponse<Response>();
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
@@ -58,7 +48,95 @@ export class ApiExceptionFilter
       this.logger.error('Unhandled application exception', stack);
     }
 
-    const exceptionResponse = this.getExceptionResponse(exception);
+    return this.sendResponse(
+      host,
+      status,
+      this.getExceptionResponse(exception),
+    );
+  }
+
+  private handleValidationException(
+    exception: I18nValidationException,
+    host: ArgumentsHost,
+  ) {
+    return this.sendResponse(host, HttpStatus.UNPROCESSABLE_ENTITY, {
+      message: this.translateValidationErrors(exception.errors, host),
+      error: 'Unprocessable Entity',
+    });
+  }
+
+  private translateValidationErrors(
+    errors: ValidationError[],
+    host: ArgumentsHost,
+    parentPath = '',
+  ): string[] {
+    const i18n = I18nContext.current(host);
+
+    return errors.flatMap((error) => {
+      const property = parentPath
+        ? `${parentPath}.${error.property}`
+        : error.property;
+      const ownMessages = Object.entries(error.constraints ?? {}).map(
+        ([constraintName, defaultMessage]) => {
+          const translationKey = VALIDATION_MESSAGE_KEYS[constraintName];
+          if (!translationKey || !i18n) {
+            return defaultMessage;
+          }
+
+          const constraints = this.getConstraintArguments(
+            error,
+            constraintName,
+          );
+
+          return String(
+            i18n.t(translationKey, {
+              args: {
+                property,
+                value: error.value as unknown,
+                constraints,
+              },
+            }),
+          );
+        },
+      );
+      const childMessages = this.translateValidationErrors(
+        error.children ?? [],
+        host,
+        property,
+      );
+
+      return [...ownMessages, ...childMessages];
+    });
+  }
+
+  private getConstraintArguments(
+    error: ValidationError,
+    constraintName: string,
+  ): Record<string, unknown> {
+    if (!error.target) {
+      return {};
+    }
+
+    const metadata = getMetadataStorage()
+      .getTargetValidationMetadatas(error.target.constructor, '', false, false)
+      .find(
+        (item) =>
+          item.propertyName === error.property &&
+          (item.name === constraintName || item.type === constraintName),
+      );
+
+    return Object.fromEntries(
+      (metadata?.constraints ?? []).map((value, index) => [index, value]),
+    );
+  }
+
+  private sendResponse(
+    host: ArgumentsHost,
+    status: number,
+    exceptionResponse: Required<HttpExceptionResponse>,
+  ) {
+    const request = host.switchToHttp().getRequest<Request>();
+    const response = host.switchToHttp().getResponse<Response>();
 
     return response.status(status).json({
       statusCode: status,

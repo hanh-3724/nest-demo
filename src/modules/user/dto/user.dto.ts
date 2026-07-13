@@ -6,7 +6,6 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
-import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class UserProfileResponseDto {
   @ApiProperty()
@@ -28,34 +27,34 @@ export class UserProfileResponseDto {
 export class UpdateUserProfileRequestDto {
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @MaxLength(20, { message: i18nValidationMessage('validation.MAX_LENGTH') })
+  @IsString()
+  @MaxLength(20)
   username?: string;
 
   @ApiProperty({ required: false, nullable: true })
   @IsOptional()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @IsString()
   avatar?: string | null;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @IsString()
   bio?: string;
 
   @ApiProperty({ required: false })
   @ValidateIf((body: UpdateUserProfileRequestDto) => Boolean(body.newPassword))
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @IsString()
   currentPassword?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @MinLength(8, { message: i18nValidationMessage('validation.MIN_LENGTH') })
+  @IsString()
+  @MinLength(8)
   newPassword?: string;
 
   @ApiProperty({ required: false })
   @ValidateIf((body: UpdateUserProfileRequestDto) => Boolean(body.newPassword))
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @MinLength(8, { message: i18nValidationMessage('validation.MIN_LENGTH') })
+  @IsString()
+  @MinLength(8)
   confirmPassword?: string;
 }

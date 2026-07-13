@@ -1,10 +1,11 @@
 {
-  "IS_EMAIL": "$property must be a valid email address",
-  "IS_STRING": "$property must be a string",
-  "IS_NOT_EMPTY": "$property must not be empty",
-  "MIN_LENGTH": "$property must be at least {constraints.0} characters long",
-  "IS_INT": "$property must be an integer",
-  "IS_BOOLEAN": "$property must be a boolean",
-  "IS_DATE": "$property must be a valid date",
-  "MIN": "$property must not be less than {constraints.0}"
+  "IS_EMAIL": "{property} must be a valid email address",
+  "IS_STRING": "{property} must be a string",
+  "IS_NOT_EMPTY": "{property} must not be empty",
+  "MIN_LENGTH": "{property} must be at least {constraints.0} characters long",
+  "MAX_LENGTH": "{property} must be at most {constraints.0} characters long",
+  "IS_INT": "{property} must be an integer",
+  "IS_BOOLEAN": "{property} must be a boolean",
+  "IS_DATE": "{property} must be a valid date",
+  "MIN": "{property} must not be less than {constraints.0}"
 }

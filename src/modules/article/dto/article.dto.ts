@@ -10,22 +10,21 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class CreateArticleRequestDto {
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   title: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   shortDescription: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   content: string;
 }
 
@@ -36,57 +35,57 @@ export class UpdateArticleRequestDto extends PartialType(
 export class ArticlePaginationQueryDto {
   @ApiProperty({ default: 1, minimum: 1, required: false })
   @Type(() => Number)
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
-  @Min(1, { message: i18nValidationMessage('validation.MIN') })
+  @IsInt()
+  @Min(1)
   page = 1;
 
   @ApiProperty({ default: 3, minimum: 1, required: false })
   @Type(() => Number)
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
-  @Min(1, { message: i18nValidationMessage('validation.MIN') })
+  @IsInt()
+  @Min(1)
   size = 3;
 }
 
 export class ArticleDetailResponseDto {
   @ApiProperty()
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
+  @IsInt()
   id: number;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   title: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   shortDescription: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   author: string;
 
   @ApiProperty()
-  @IsBoolean({ message: i18nValidationMessage('validation.IS_BOOLEAN') })
+  @IsBoolean()
   isFavorite: boolean;
 
   @ApiProperty({ description: 'Number of users who favorited this article' })
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
-  @Min(0, { message: i18nValidationMessage('validation.MIN') })
+  @IsInt()
+  @Min(0)
   favoriteBy: number;
 
   @ApiProperty()
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
-  @Min(0, { message: i18nValidationMessage('validation.MIN') })
+  @IsInt()
+  @Min(0)
   totalComments: number;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @IsString()
   content: string;
 
   @ApiProperty({ format: 'date-time' })
-  @IsDateString({}, { message: i18nValidationMessage('validation.IS_DATE') })
+  @IsDateString()
   createdAt: string;
 
   @ApiProperty({ type: () => [CommentResponseDto] })
@@ -103,51 +102,51 @@ export class ArticleResponseDto {
 
   @ApiProperty({ default: 1, minimum: 1 })
   @Type(() => Number)
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
-  @Min(1, { message: i18nValidationMessage('validation.MIN') })
+  @IsInt()
+  @Min(1)
   page = 1;
 
   @ApiProperty({ default: 3, minimum: 1 })
   @Type(() => Number)
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
-  @Min(1, { message: i18nValidationMessage('validation.MIN') })
+  @IsInt()
+  @Min(1)
   size = 3;
 
   @ApiProperty()
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
-  @Min(0, { message: i18nValidationMessage('validation.MIN') })
+  @IsInt()
+  @Min(0)
   total: number;
 }
 
 export class CreateCommentRequestDto {
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   comment: string;
 }
 
 export class CommentResponseDto {
   @ApiProperty()
-  @IsInt({ message: i18nValidationMessage('validation.IS_INT') })
+  @IsInt()
   id: number;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   commentor: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   comment: string;
 
   @ApiProperty({ type: Date })
-  @IsDate({ message: i18nValidationMessage('validation.IS_DATE') })
+  @IsDate()
   createdAt: Date;
 }
 
 export class ToggleFavoriteResponseDto {
   @ApiProperty()
-  @IsBoolean({ message: i18nValidationMessage('validation.IS_BOOLEAN') })
+  @IsBoolean()
   isFavorite: boolean;
 }
