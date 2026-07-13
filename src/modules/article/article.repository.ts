@@ -47,7 +47,7 @@ export class ArticleRepository {
       })
       .from(schema.articles)
       .innerJoin(schema.users, eq(schema.articles.authorId, schema.users.id))
-      .orderBy(desc(schema.articles.createdAt))
+      .orderBy(desc(schema.articles.createdAt), desc(schema.articles.id))
       .limit(size)
       .offset(offset);
 
@@ -135,7 +135,10 @@ export class ArticleRepository {
         eq(schema.articleComments.commentorId, schema.users.id),
       )
       .where(eq(schema.articleComments.articleId, articleId))
-      .orderBy(desc(schema.articleComments.createdAt));
+      .orderBy(
+        desc(schema.articleComments.createdAt),
+        desc(schema.articleComments.id),
+      );
   }
 
   async createComment(articleId: number, commentorId: number, content: string) {
