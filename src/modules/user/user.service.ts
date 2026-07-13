@@ -1,13 +1,17 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcryptjs';
 import { randomBytes, createHash } from 'node:crypto';
+import { I18nService } from 'nestjs-i18n';
 
 import { SignInRequestDto, SignUpRequestDto } from './dto/auth.dto';
 import {
@@ -27,132 +31,189 @@ const PASSWORD_SALT_ROUNDS = 12;
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     private readonly userRepository: UserRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly i18n: I18nService,
   ) {}
 
   async signup(dto: SignUpRequestDto) {
-    const existingUser = await this.userRepository.findUserByEmail(dto.email);
+    try {
+      const existingUser = await this.userRepository.findUserByEmail(dto.email);
 
-    if (existingUser) {
-      throw new ConflictException('Email is already registered');
+      if (existingUser) {
+        throw new ConflictException(
+          this.i18n.t('errors.EMAIL_ALREADY_REGISTERED'),
+        );
+      }
+
+      const passwordHash = await hash(dto.password, PASSWORD_SALT_ROUNDS);
+      return this.userRepository.transaction(async (repository) => {
+        const user = await repository.createUser({
+          email: dto.email,
+          username: dto.username,
+          passwordHash,
+        });
+
+        return this.createAuthResponseInTransaction(user, repository);
+      });
+    } catch (error) {
+      this.rethrowServiceError(error, 'signup');
     }
-
-    const passwordHash = await hash(dto.password, PASSWORD_SALT_ROUNDS);
-    const user = await this.userRepository.createUser({
-      email: dto.email,
-      username: dto.username,
-      passwordHash,
-    });
-
-    return this.createAuthResponse(user);
   }
 
   async login(dto: SignInRequestDto) {
-    const user = await this.userRepository.findUserByEmail(dto.email);
+    try {
+      const user = await this.userRepository.findUserByEmail(dto.email);
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      if (!user) {
+        throw new UnauthorizedException(
+          this.i18n.t('errors.INVALID_CREDENTIALS'),
+        );
+      }
+
+      const isPasswordValid = await compare(dto.password, user.passwordHash);
+
+      if (!isPasswordValid) {
+        throw new UnauthorizedException(
+          this.i18n.t('errors.INVALID_CREDENTIALS'),
+        );
+      }
+
+      return this.createAuthResponse(user);
+    } catch (error) {
+      this.rethrowServiceError(error, 'login');
     }
-
-    const isPasswordValid = await compare(dto.password, user.passwordHash);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
-    }
-
-    return this.createAuthResponse(user);
   }
 
   async refreshToken(refreshToken: string) {
-    const tokenHash = this.hashToken(refreshToken);
-    const storedToken =
-      await this.userRepository.findActiveRefreshToken(tokenHash);
+    try {
+      return this.userRepository.transaction(async (repository) => {
+        const tokenHash = this.hashToken(refreshToken);
+        const storedToken =
+          await repository.findActiveRefreshToken(tokenHash);
 
-    if (!storedToken) {
-      throw new UnauthorizedException('Invalid refresh token');
+        if (!storedToken) {
+          throw new UnauthorizedException(
+            this.i18n.t('errors.INVALID_REFRESH_TOKEN'),
+          );
+        }
+
+        const user = await repository.findUserById(storedToken.userId);
+
+        if (!user) {
+          throw new UnauthorizedException(
+            this.i18n.t('errors.INVALID_REFRESH_TOKEN'),
+          );
+        }
+        
+        await repository.revokeRefreshToken(storedToken.id);
+
+        return this.createAuthResponseInTransaction(user, repository);
+      });
+    } catch (error) {
+      this.rethrowServiceError(error, 'refreshToken');
     }
-
-    await this.userRepository.revokeRefreshToken(storedToken.id);
-
-    const user = await this.userRepository.findUserById(storedToken.userId);
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    return this.createAuthResponse(user);
   }
 
   async updateProfile(
     userId: number,
     dto: UpdateUserProfileRequestDto,
   ): Promise<UserProfileResponseDto> {
-    const user = await this.userRepository.findUserById(userId);
+    try {
+      const user = await this.userRepository.findUserById(userId);
 
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
+      if (!user) {
+        throw new UnauthorizedException(this.i18n.t('errors.USER_NOT_FOUND'));
+      }
 
-    if (dto.newPassword) {
-      if (!dto.currentPassword || !dto.confirmPassword) {
-        throw new BadRequestException(
-          'currentPassword and confirmPassword are required',
+      if (dto.newPassword) {
+        if (!dto.currentPassword || !dto.confirmPassword) {
+          throw new BadRequestException(
+            this.i18n.t('errors.PASSWORD_FIELDS_REQUIRED'),
+          );
+        }
+
+        if (dto.newPassword !== dto.confirmPassword) {
+          throw new BadRequestException(
+            this.i18n.t('errors.PASSWORD_CONFIRMATION_MISMATCH'),
+          );
+        }
+
+        const isCurrentPasswordValid = await compare(
+          dto.currentPassword,
+          user.passwordHash,
+        );
+
+        if (!isCurrentPasswordValid) {
+          throw new UnauthorizedException(
+            this.i18n.t('errors.INVALID_CURRENT_PASSWORD'),
+          );
+        }
+      }
+
+      const updateValues: UserUpdateValues = {
+        updatedAt: new Date(),
+      };
+
+      if (dto.username !== undefined) {
+        updateValues.username = dto.username;
+      }
+
+      if (dto.avatar !== undefined) {
+        updateValues.avatar = dto.avatar;
+      }
+
+      if (dto.bio !== undefined) {
+        updateValues.bio = dto.bio;
+      }
+
+      if (dto.newPassword) {
+        updateValues.passwordHash = await hash(
+          dto.newPassword,
+          PASSWORD_SALT_ROUNDS,
         );
       }
 
-      if (dto.newPassword !== dto.confirmPassword) {
-        throw new BadRequestException(
-          'New password confirmation does not match',
-        );
-      }
-
-      const isCurrentPasswordValid = await compare(
-        dto.currentPassword,
-        user.passwordHash,
+      const updatedUser = await this.userRepository.updateUser(
+        userId,
+        updateValues,
       );
 
-      if (!isCurrentPasswordValid) {
-        throw new UnauthorizedException('Current password is invalid');
-      }
+      return this.toUserProfile(updatedUser);
+    } catch (error) {
+      this.rethrowServiceError(error, 'updateProfile');
+    }
+  }
+
+  private rethrowServiceError(error: unknown, operation: string): never {
+    if (error instanceof HttpException) {
+      throw error;
     }
 
-    const updateValues: UserUpdateValues = {
-      updatedAt: new Date(),
-    };
+    const stack = error instanceof Error ? error.stack : undefined;
+    this.logger.error(`User service operation failed: ${operation}`, stack);
 
-    if (dto.username !== undefined) {
-      updateValues.username = dto.username;
-    }
-
-    if (dto.avatar !== undefined) {
-      updateValues.avatar = dto.avatar;
-    }
-
-    if (dto.bio !== undefined) {
-      updateValues.bio = dto.bio;
-    }
-
-    if (dto.newPassword) {
-      updateValues.passwordHash = await hash(
-        dto.newPassword,
-        PASSWORD_SALT_ROUNDS,
-      );
-    }
-
-    const updatedUser = await this.userRepository.updateUser(
-      userId,
-      updateValues,
+    throw new InternalServerErrorException(
+      this.i18n.t('errors.INTERNAL_SERVER_ERROR'),
     );
-
-    return this.toUserProfile(updatedUser);
   }
 
   private async createAuthResponse(user: UserRecord) {
+    return this.userRepository.transaction((repository) =>
+      this.createAuthResponseInTransaction(user, repository),
+    );
+  }
+
+  private async createAuthResponseInTransaction(
+    user: UserRecord,
+    repository: UserRepository,
+  ) {
     const accessToken = await this.signAccessToken(user);
-    const refreshToken = await this.createRefreshToken(user.id);
+    const refreshToken = await this.createRefreshToken(user.id, repository);
 
     return {
       user: this.toUserProfile(user),
@@ -161,12 +222,15 @@ export class UserService {
     };
   }
 
-  private async createRefreshToken(userId: number) {
+  private async createRefreshToken(
+    userId: number,
+    repository: UserRepository,
+  ) {
     const token = randomBytes(48).toString('hex');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_TTL_DAYS);
 
-    await this.userRepository.createRefreshToken({
+    await repository.createRefreshToken({
       userId,
       tokenHash: this.hashToken(token),
       expiresAt,

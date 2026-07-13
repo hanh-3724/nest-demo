@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, MinLength, ValidateIf } from 'class-validator';
+import { IsOptional, IsString, MaxLength, MinLength, ValidateIf } from 'class-validator';
+import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class UserProfileResponseDto {
   @ApiProperty()
@@ -21,33 +22,34 @@ export class UserProfileResponseDto {
 export class UpdateUserProfileRequestDto {
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
+  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @MaxLength(20, { message: i18nValidationMessage('validation.MAX_LENGTH') })
   username?: string;
 
   @ApiProperty({ required: false, nullable: true })
   @IsOptional()
-  @IsString()
+  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
   avatar?: string | null;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
+  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
   bio?: string;
 
   @ApiProperty({ required: false })
   @ValidateIf((body: UpdateUserProfileRequestDto) => Boolean(body.newPassword))
-  @IsString()
+  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
   currentPassword?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
-  @MinLength(8)
+  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @MinLength(8, { message: i18nValidationMessage('validation.MIN_LENGTH') })
   newPassword?: string;
 
   @ApiProperty({ required: false })
   @ValidateIf((body: UpdateUserProfileRequestDto) => Boolean(body.newPassword))
-  @IsString()
-  @MinLength(8)
+  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @MinLength(8, { message: i18nValidationMessage('validation.MIN_LENGTH') })
   confirmPassword?: string;
 }
