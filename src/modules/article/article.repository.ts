@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { DbService } from '../../db/db.service';
 import * as schema from '../../db/schema';
@@ -135,6 +135,31 @@ export class ArticleRepository {
         eq(schema.articleComments.commentorId, schema.users.id),
       )
       .where(eq(schema.articleComments.articleId, articleId))
+      .orderBy(
+        desc(schema.articleComments.createdAt),
+        desc(schema.articleComments.id),
+      );
+  }
+
+  async findCommentsByArticleIds(articleIds: number[]) {
+    if (articleIds.length === 0) {
+      return [];
+    }
+
+    return this.dbService.db
+      .select({
+        articleId: schema.articleComments.articleId,
+        id: schema.articleComments.id,
+        commentor: schema.users.username,
+        comment: schema.articleComments.content,
+        createdAt: schema.articleComments.createdAt,
+      })
+      .from(schema.articleComments)
+      .innerJoin(
+        schema.users,
+        eq(schema.articleComments.commentorId, schema.users.id),
+      )
+      .where(inArray(schema.articleComments.articleId, articleIds))
       .orderBy(
         desc(schema.articleComments.createdAt),
         desc(schema.articleComments.id),

@@ -55,12 +55,21 @@ export class ArticleService {
         size,
         userId,
       );
-      const articles = await Promise.all(
-        result.articles.map(async (article) => ({
-          ...this.mapArticle(article),
-          comments: await this.articleRepository.findComments(article.id),
-        })),
+      const comments = await this.articleRepository.findCommentsByArticleIds(
+        result.articles.map((article) => article.id),
       );
+      const commentsByArticleId = new Map<number, CommentResponseDto[]>();
+
+      for (const { articleId, ...comment } of comments) {
+        const articleComments = commentsByArticleId.get(articleId) ?? [];
+        articleComments.push(comment);
+        commentsByArticleId.set(articleId, articleComments);
+      }
+
+      const articles = result.articles.map((article) => ({
+        ...this.mapArticle(article),
+        comments: commentsByArticleId.get(article.id) ?? [],
+      }));
 
       return { articles, page, size, total: result.total };
     } catch (error) {

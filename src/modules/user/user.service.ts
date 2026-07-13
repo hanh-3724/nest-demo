@@ -93,8 +93,7 @@ export class UserService {
     try {
       return this.userRepository.transaction(async (repository) => {
         const tokenHash = this.hashToken(refreshToken);
-        const storedToken =
-          await repository.findActiveRefreshToken(tokenHash);
+        const storedToken = await repository.findActiveRefreshToken(tokenHash);
 
         if (!storedToken) {
           throw new UnauthorizedException(
@@ -109,7 +108,7 @@ export class UserService {
             this.i18n.t('errors.INVALID_REFRESH_TOKEN'),
           );
         }
-        
+
         await repository.revokeRefreshToken(storedToken.id);
 
         return this.createAuthResponseInTransaction(user, repository);
@@ -222,10 +221,7 @@ export class UserService {
     };
   }
 
-  private async createRefreshToken(
-    userId: number,
-    repository: UserRepository,
-  ) {
+  private async createRefreshToken(userId: number, repository: UserRepository) {
     const token = randomBytes(48).toString('hex');
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_TTL_DAYS);

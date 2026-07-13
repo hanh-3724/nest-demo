@@ -119,9 +119,6 @@ export class ArticleResponseDto {
   total: number;
 }
 
-/** @deprecated Use ArticleDetailResponseDto instead. */
-export class ArticleDetailRespose extends ArticleDetailResponseDto {}
-
 export class CreateCommentRequestDto {
   @ApiProperty()
   @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
