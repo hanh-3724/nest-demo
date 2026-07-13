@@ -90,12 +90,69 @@ On Windows PowerShell, if `npm` is blocked by execution policy, use:
 npm.cmd run start:dev
 ```
 
+## Database Migrations
+
+Drizzle reads the schema from `src/db/schema.ts` and writes migration files to `drizzle/`.
+
+After changing the schema, generate a migration:
+
+```bash
+npm run db:generate
+```
+
+On Windows PowerShell, use:
+
+```bash
+npm.cmd run db:generate
+```
+
+Apply generated migrations to the configured PostgreSQL database. This command reads database settings from `.env`:
+
+```bash
+npm run db:migrate
+```
+
+On Windows PowerShell, use:
+
+```bash
+npm.cmd run db:migrate
+```
+
+For quick local development only, you can push the current schema directly without creating or applying migration files:
+
+```bash
+npm run db:push
+```
+
+On Windows PowerShell, use:
+
+```bash
+npm.cmd run db:push
+```
+
+When running the backend locally, make sure PostgreSQL is up and `.env` points to the host port:
+
+```env
+DB_HOST=localhost
+DB_PORT=5543
+```
+
+When running inside Docker Compose, keep:
+
+```env
+DB_HOST=nestjs-demo-postgres
+DB_PORT=5432
+```
+
 ## Useful Commands
 
 ```bash
 npm run build
 npm run test
 npm run lint
+npm run db:generate
+npm run db:migrate
+npm run db:push
 ```
 
 Swagger is configured in the app. After starting the backend, check the configured Swagger route in `src/swagger.ts`.
