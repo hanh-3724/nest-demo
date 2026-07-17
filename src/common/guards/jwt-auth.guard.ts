@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 
 import { IS_PUBLIC_ROUTE } from '../decorators/public.decorator';
+import { IS_OPTIONAL_AUTH_ROUTE } from '../decorators/optional-auth.decorator';
 import type { JwtUserPayload } from '../../modules/user/user.types';
 
 @Injectable()
@@ -30,12 +31,21 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
+    const isOptionalAuthRoute = this.reflector.getAllAndOverride<boolean>(
+      IS_OPTIONAL_AUTH_ROUTE,
+      [context.getHandler(), context.getClass()],
+    );
+
     const request = context
       .switchToHttp()
       .getRequest<Request & { user?: JwtUserPayload }>();
     const token = this.extractBearerToken(request);
 
     if (!token) {
+      if (isOptionalAuthRoute) {
+        return true;
+      }
+
       throw new UnauthorizedException('Missing bearer token');
     }
 

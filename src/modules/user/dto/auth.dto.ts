@@ -1,38 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
-import { i18nValidationMessage } from 'nestjs-i18n';
 
 export class SignUpRequestDto {
   @ApiProperty()
-  @IsEmail({}, { message: i18nValidationMessage('validation.IS_EMAIL') })
+  @IsEmail()
   email: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
+  @IsString()
   username: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
-  @MinLength(8, { message: i18nValidationMessage('validation.MIN_LENGTH') })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
   password: string;
 }
 
 export class SignInRequestDto {
   @ApiProperty()
-  @IsEmail({}, { message: i18nValidationMessage('validation.IS_EMAIL') })
+  @IsEmail()
   email: string;
 
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   password: string;
 }
 
 export class RefreshTokenRequestDto {
   @ApiProperty()
-  @IsString({ message: i18nValidationMessage('validation.IS_STRING') })
-  @IsNotEmpty({ message: i18nValidationMessage('validation.IS_NOT_EMPTY') })
+  @IsString()
+  @IsNotEmpty()
   refreshToken: string;
 }
 
