@@ -7,6 +7,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -39,10 +40,11 @@ export class ArticlePaginationQueryDto {
   @Min(1)
   page = 1;
 
-  @ApiProperty({ default: 3, minimum: 1, required: false })
+  @ApiProperty({ default: 3, minimum: 1, maximum: 50, required: false })
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size = 3;
 }
 
