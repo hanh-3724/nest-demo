@@ -50,14 +50,17 @@ export class ArticleService {
     userId?: number,
   ): Promise<ArticleResponseDto> {
     try {
-      const result = await this.articleRepository.findArticles(
-        page,
-        size,
-        userId,
-      );
-      const comments = await this.articleRepository.findCommentsByArticleIds(
-        result.articles.map((article) => article.id),
-      );
+      const result = await this.articleRepository.findArticles(page, size);
+      const articleIds = result.articles.map((article) => article.id);
+
+      const [comments, favoriteStats] = await Promise.all([
+        this.articleRepository.findCommentsByArticleIds(articleIds),
+        this.articleRepository.findFavoriteStatsByArticleIds(
+          articleIds,
+          userId,
+        ),
+      ]);
+
       const commentsByArticleId = new Map<number, CommentResponseDto[]>();
 
       for (const { articleId, ...comment } of comments) {
@@ -66,10 +69,20 @@ export class ArticleService {
         commentsByArticleId.set(articleId, articleComments);
       }
 
-      const articles = result.articles.map((article) => ({
-        ...this.mapArticle(article),
-        comments: commentsByArticleId.get(article.id) ?? [],
-      }));
+      const favoriteStatsByArticleId = new Map(
+        favoriteStats.map(({ articleId, ...stats }) => [articleId, stats]),
+      );
+
+      const articles = result.articles.map((article) => {
+        const stats = favoriteStatsByArticleId.get(article.id);
+
+        return {
+          ...this.mapArticle(article),
+          isFavorite: stats?.isFavorite ?? false,
+          favoriteBy: stats?.count ?? 0,
+          comments: commentsByArticleId.get(article.id) ?? [],
+        };
+      });
 
       return { articles, page, size, total: result.total };
     } catch (error) {
@@ -197,8 +210,8 @@ export class ArticleService {
     content: string;
     author: string;
     createdAt: Date;
-    isFavorite: boolean;
-    favoriteBy: number;
+    isFavorite?: boolean;
+    favoriteBy?: number;
     totalComments: number;
   }) {
     return {
@@ -208,8 +221,8 @@ export class ArticleService {
       content: article.content,
       author: article.author,
       createdAt: article.createdAt.toISOString(),
-      isFavorite: article.isFavorite,
-      favoriteBy: article.favoriteBy,
+      isFavorite: article.isFavorite ?? false,
+      favoriteBy: article.favoriteBy ?? 0,
       totalComments: article.totalComments,
     };
   }
@@ -220,7 +233,11 @@ export class ArticleService {
     }
 
     const stack = error instanceof Error ? error.stack : undefined;
-    this.logger.error(`Article service operation failed: ${operation}`, stack);
+    const cause = error instanceof Error ? error.cause : undefined;
+    this.logger.error(
+      `Article service operation failed: ${operation}`,
+      cause ? { cause, stack } : stack,
+    );
     throw new InternalServerErrorException(
       this.i18n.t('errors.INTERNAL_SERVER_ERROR'),
     );

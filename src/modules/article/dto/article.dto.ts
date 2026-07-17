@@ -34,13 +34,19 @@ export class UpdateArticleRequestDto extends PartialType(
 ) {}
 
 export class ArticlePaginationQueryDto {
-  @ApiProperty({ default: 1, minimum: 1, required: false })
+  @ApiProperty({ type: Number, default: 1, minimum: 1, required: false })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   page = 1;
 
-  @ApiProperty({ default: 3, minimum: 1, maximum: 50, required: false })
+  @ApiProperty({
+    type: Number,
+    default: 3,
+    minimum: 1,
+    maximum: 50,
+    required: false,
+  })
   @Type(() => Number)
   @IsInt()
   @Min(1)

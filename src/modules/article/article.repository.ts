@@ -17,45 +17,54 @@ export class ArticleRepository {
     return article;
   }
 
-  async findArticles(page: number, size: number, userId?: number) {
+  async findArticles(page: number, size: number) {
     const offset = (page - 1) * size;
-    const isFavorite = userId
-      ? sql<boolean>`exists(
-          select 1 from ${schema.articleFavorites}
-          where ${schema.articleFavorites.articleId} = ${schema.articles.id}
-            and ${schema.articleFavorites.userId} = ${userId}
-        )`
-      : sql<boolean>`false`;
 
-    const articles = await this.dbService.db
-      .select({
-        id: schema.articles.id,
-        title: schema.articles.title,
-        shortDescription: schema.articles.shortDescription,
-        content: schema.articles.content,
-        author: schema.users.username,
-        createdAt: schema.articles.createdAt,
-        isFavorite,
-        favoriteBy: sql<number>`(
-          select count(*)::int from ${schema.articleFavorites}
-          where ${schema.articleFavorites.articleId} = ${schema.articles.id}
-        )`,
-        totalComments: sql<number>`(
-          select count(*)::int from ${schema.articleComments}
-          where ${schema.articleComments.articleId} = ${schema.articles.id}
-        )`,
-      })
-      .from(schema.articles)
-      .innerJoin(schema.users, eq(schema.articles.authorId, schema.users.id))
-      .orderBy(desc(schema.articles.createdAt), desc(schema.articles.id))
-      .limit(size)
-      .offset(offset);
-
-    const [{ total }] = await this.dbService.db
-      .select({ total: sql<number>`count(*)::int` })
-      .from(schema.articles);
+    const [articles, [{ total }]] = await Promise.all([
+      this.dbService.db
+        .select({
+          id: schema.articles.id,
+          title: schema.articles.title,
+          shortDescription: schema.articles.shortDescription,
+          content: schema.articles.content,
+          author: schema.users.username,
+          createdAt: schema.articles.createdAt,
+          totalComments: sql<number>`(
+            select count(*)::int from ${schema.articleComments}
+            where ${schema.articleComments.articleId} = ${schema.articles.id}
+          )`,
+        })
+        .from(schema.articles)
+        .innerJoin(schema.users, eq(schema.articles.authorId, schema.users.id))
+        .orderBy(desc(schema.articles.createdAt), desc(schema.articles.id))
+        .limit(size)
+        .offset(offset),
+      this.dbService.db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(schema.articles),
+    ]);
 
     return { articles, total };
+  }
+
+  async findFavoriteStatsByArticleIds(articleIds: number[], userId?: number) {
+    if (articleIds.length === 0) {
+      return [];
+    }
+
+    const isFavorite = userId
+      ? sql<boolean>`bool_or(${schema.articleFavorites.userId} = ${userId})`
+      : sql<boolean>`false`;
+
+    return this.dbService.db
+      .select({
+        articleId: schema.articleFavorites.articleId,
+        count: sql<number>`count(*)::int`,
+        isFavorite,
+      })
+      .from(schema.articleFavorites)
+      .where(inArray(schema.articleFavorites.articleId, articleIds))
+      .groupBy(schema.articleFavorites.articleId);
   }
 
   async findArticleById(id: number, userId?: number) {

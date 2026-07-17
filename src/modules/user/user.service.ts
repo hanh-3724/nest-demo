@@ -194,7 +194,11 @@ export class UserService {
     }
 
     const stack = error instanceof Error ? error.stack : undefined;
-    this.logger.error(`User service operation failed: ${operation}`, stack);
+    const cause = error instanceof Error ? error.cause : undefined;
+    this.logger.error(
+      `User service operation failed: ${operation}`,
+      cause ? { cause, stack } : stack,
+    );
 
     throw new InternalServerErrorException(
       this.i18n.t('errors.INTERNAL_SERVER_ERROR'),
